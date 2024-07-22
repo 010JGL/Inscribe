@@ -5,8 +5,11 @@ import {
   TopicCreateTransaction,
   TopicMessageSubmitTransaction,
   TopicId,
+  PrivateKey,
+  TransactionResponse,
+  TransactionReceipt
 } from "@hashgraph/sdk";
-import { Button, TextField, Typography } from "@mui/material";
+import { Button, TextField, Typography, Switch, FormControlLabel, Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
 import { Stack } from "@mui/system";
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
 import SendIcon from '@mui/icons-material/Send';
@@ -14,15 +17,12 @@ import WordInputBox from '../components/WordInputBox';
 
 // Initialize Hedera Client
 const initializeClient = (walletInterface: any) => {
-  console.log("Account ID:", process.env.REACT_APP_MY_ACCOUNT_ID);
-  console.log("Private Key:", process.env.REACT_APP_MY_PRIVATE_KEY);
-
   let client;
   if (!walletInterface) {
     client = Client.forTestnet();
     client.setOperator(
       AccountId.fromString(process.env.REACT_APP_MY_ACCOUNT_ID || ""),
-      process.env.REACT_APP_MY_PRIVATE_KEY || ""
+      PrivateKey.fromString(process.env.REACT_APP_MY_PRIVATE_KEY || "")
     );
   } else {
     client = Client.forNetwork(walletInterface.network);
@@ -37,6 +37,8 @@ const initializeClient = (walletInterface: any) => {
 interface TopicInfo {
   topicId: TopicId;
   message: string;
+  isPrivate: boolean;
+  submitKey?: string;
 }
 
 export default function CreateTopic() {
@@ -45,8 +47,11 @@ export default function CreateTopic() {
   const [amount, setAmount] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [client, setClient] = useState<Client | null>(null);
-  const [topics, setTopics] = useState<TopicInfo[]>([]); // State to store created topic IDs and messages
-  const [lastCreatedTopicId, setLastCreatedTopicId] = useState<TopicId | null>(null); // State to store the last created topic ID
+  const [topics, setTopics] = useState<TopicInfo[]>([]);
+  const [lastCreatedTopicId, setLastCreatedTopicId] = useState<TopicId | null>(null);
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [submitKey, setSubmitKey] = useState<PrivateKey | null>(null);
+  const [openDialog, setOpenDialog] = useState(false);
 
   useEffect(() => {
     if (!process.env.REACT_APP_MY_ACCOUNT_ID || !process.env.REACT_APP_MY_PRIVATE_KEY) {
@@ -56,7 +61,7 @@ export default function CreateTopic() {
     }
   }, [walletInterface]);
 
-  const handleWordSubmit = async (word: string, topicId: TopicId | null) => {
+  const handleWordSubmit = async (word: string, topicId?: TopicId) => {
     if (error) {
       console.error("Cannot submit word due to configuration error:", error);
       return;
@@ -66,26 +71,25 @@ export default function CreateTopic() {
       console.error("Hedera client not initialized.");
       return;
     }
-
-    // Helper function to split messages into chunks
-    const splitMessage = (message: string, maxChunkSize: number) => {
-      const chunks: string[] = [];
-      for (let i = 0; i < message.length; i += maxChunkSize) {
-        chunks.push(message.slice(i, i + maxChunkSize));
-      }
-      return chunks;
-    };
   
     try {
       console.log('Submitted word:', word);
   
       let currentTopicId: TopicId;
+      let newSubmitKey: PrivateKey | null = null;
   
       if (!topicId) {
         // Create a new topic
         const topicCreateTx = new TopicCreateTransaction();
+        
+        if (isPrivate) {
+          newSubmitKey = PrivateKey.generate();
+          topicCreateTx.setSubmitKey(newSubmitKey.publicKey);
+          console.log("Creating topic with submit key:", newSubmitKey.toString());
+        }
+  
         const topicCreateSubmit = await topicCreateTx.execute(client);
-        const topicCreateReceipt = await topicCreateSubmit.getReceipt(client);
+        const topicCreateReceipt: TransactionReceipt = await topicCreateSubmit.getReceipt(client);
         const newTopicId: TopicId | null = topicCreateReceipt.topicId;
   
         if (newTopicId === null) {
@@ -99,37 +103,102 @@ export default function CreateTopic() {
         currentTopicId = topicId;
       }
   
-      // Split message into chunks if it exceeds 1000 characters
+      // Split message into chunks if necessary
+      const splitMessage = (message: string, maxChunkSize: number) => {
+        const chunks: string[] = [];
+        for (let i = 0; i < message.length; i += maxChunkSize) {
+          chunks.push(message.slice(i, i + maxChunkSize));
+        }
+        return chunks;
+      };
+  
       const chunks = splitMessage(word, 1000);
   
       // Submit each chunk to the topic
       for (const chunk of chunks) {
-        const messageTx = new TopicMessageSubmitTransaction({
-          topicId: currentTopicId,
-          message: chunk
-        });
-        const messageSubmit = await messageTx.execute(client);
-        const messageReceipt = await messageSubmit.getReceipt(client);
+        let messageTx = new TopicMessageSubmitTransaction()
+          .setTopicId(currentTopicId)
+          .setMessage(chunk);
   
-        console.log("Message submitted to topic:", messageReceipt.status.toString());
+        if (isPrivate && newSubmitKey) {
+          try {
+            console.log("Signing message with submit key:", newSubmitKey.toString());
+            messageTx = await messageTx.freezeWith(client);
+            messageTx = await messageTx.sign(newSubmitKey);
+            console.log("Message signed successfully.");
+          } catch (signError) {
+            console.error("Error signing message with submit key:", signError);
+            setError("Failed to sign message. Please try again.");
+            return;
+          }
+        }
+  
+        try {
+          const messageSubmit = await messageTx.execute(client);
+          const messageReceipt = await messageSubmit.getReceipt(client);
+  
+          if (messageReceipt.status.toString() === "INVALID_SIGNATURE") {
+            console.error("Invalid signature for message submission.");
+            console.log("Submit key used:", newSubmitKey?.toString());
+            console.log("Message transaction details:", messageTx);
+            setError("Failed to submit message due to invalid signature. Please check your submit key.");
+            return;
+          }
+  
+          console.log("Message submitted to topic:", messageReceipt.status.toString());
+        } catch (txError) {
+          console.error("Error submitting message to topic:", txError);
+          setError("Failed to submit message. Please try again.");
+        }
       }
   
       // Add new topic and message to the state
-      setTopics([...topics, { topicId: currentTopicId, message: word }]);
+      setTopics([...topics, { topicId: currentTopicId, message: word, isPrivate, submitKey: newSubmitKey ? newSubmitKey.toString() : undefined }]);
+  
+      // Open the dialog asking if the user wants to send another message
+      setOpenDialog(true);
     } catch (err) {
-      console.error("Error submitting word to topic:", err);
-      setError("Failed to submit word. Please try again.");
+      console.error("Error handling word submission:", err);
+      setError("Failed to handle word submission. Please try again.");
     }
   };
   
+  
+
+  const handleDialogClose = (sendAnother: boolean) => {
+    setOpenDialog(false);
+    if (sendAnother) {
+      // Reset the state to allow sending another message
+      setLastCreatedTopicId(null);
+      setSubmitKey(null);
+      setIsPrivate(false); // Reset to default private state if needed
+    }
+  };
+
+  const handlePrivateSwitchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setIsPrivate(event.target.checked);
+    // Reset state when switching to/from private topics
+    setLastCreatedTopicId(null);
+    setSubmitKey(null);
+  };
 
   return (
     <Stack alignItems="center" spacing={6}>
-      <Typography variant="h6" color="orange">
+      <Typography variant="h4" color="orange">
         Store your wisdom on the hashgraph
       </Typography>
       {error && <Typography color="red">{error}</Typography>}
-      <WordInputBox onWordSubmit={(word) => handleWordSubmit(word, lastCreatedTopicId)} />
+      <FormControlLabel
+        control={
+          <Switch
+            checked={isPrivate}
+            onChange={handlePrivateSwitchChange}
+          />
+        }
+        label="Create Private Topic"
+        sx={{ alignSelf: 'flex-end' }}
+      />
+      <WordInputBox onWordSubmit={(word) => handleWordSubmit(word, lastCreatedTopicId ?? undefined)} />
       {walletInterface !== null && (
         <>
           <Stack direction='row' gap={2} alignItems='center'>
@@ -165,17 +234,42 @@ export default function CreateTopic() {
         </>
       )}
       {/* Display created topics and messages */}
-      <Typography variant="h6" color="teal">
+      <Typography variant="h6" color="orange">
         Created Topics
       </Typography>
-      <Stack spacing={2}>
+      <Stack spacing={2} alignItems="center">
         {topics.map((topic, index) => (
-          <Typography key={index} variant="body1" color="white">
-            <strong>Topic {index + 1}:</strong> {topic.topicId.toString()} <br />
-            <strong>Message:</strong> {topic.message}
+          <Typography key={index} color="white" sx={{ maxWidth: '600px', justifyContent: 'flex-start' }}>
+            <strong>Topic ID:</strong> {topic.topicId.toString()} <br />
+            <strong>Message:</strong> {topic.message} <br />
+            <strong>Private:</strong> {topic.isPrivate ? "Yes" : "No"} <br />
+            {topic.isPrivate && <><strong>Submit Key:</strong> {topic.submitKey} <br /></>}
           </Typography>
         ))}
       </Stack>
+
+      <Dialog
+        open={openDialog}
+        onClose={() => handleDialogClose(false)}
+      >
+        <DialogTitle>{"Message Sent"}</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Do you want to send another message to the same topic?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => handleDialogClose(false)}>No</Button>
+          <Button onClick={() => handleDialogClose(true)} autoFocus>
+            Yes
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   );
 }
+
+
+
+
+

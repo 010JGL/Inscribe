@@ -20,8 +20,8 @@ export default function Home() {
         Welcome to 
       </Typography>
       <Typography
-        variant="h4"
-        color="violet"
+        variant="h1"
+        color="orange"
       >
         Inscribe
       </Typography>
