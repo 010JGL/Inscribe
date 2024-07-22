@@ -21,7 +21,7 @@ export default function NavBar() {
     if (accountId) {
       setOpen(false);
     }
-  }, [accountId])
+  }, [accountId]);
 
   return (
     <AppBar position='relative'>
@@ -29,10 +29,12 @@ export default function NavBar() {
         <Grid container alignItems="center" justifyContent="space-between">
           <Grid item>
             <Grid container alignItems="center">
-              <img src={HBARLogo} alt='An upper case H with a line through the top' className='hbarLogoImg' />
-              <Typography variant="h6" color="white" pl={1} noWrap>
-                Hello Future
-              </Typography>
+              <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+                <img src={HBARLogo} alt='An upper case H with a line through the top' className='hbarLogoImg' />
+                <Typography variant="h6" color="white" pl={1} noWrap>
+                  Hello Future
+                </Typography>
+              </Link>
             </Grid>
           </Grid>
 
@@ -71,5 +73,5 @@ export default function NavBar() {
       </Toolbar>
       <WalletSelectionDialog open={open} setOpen={setOpen} onClose={() => setOpen(false)} />
     </AppBar>
-  )
+  );
 }
