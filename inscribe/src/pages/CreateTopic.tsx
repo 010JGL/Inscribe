@@ -39,7 +39,7 @@ interface TopicInfo {
   message: string;
 }
 
-export default function WriteTopic() {
+export default function CreateTopic() {
   const { walletInterface } = useWalletInterface();
   const [toAccountId, setToAccountId] = useState("");
   const [amount, setAmount] = useState(1);
@@ -56,50 +56,64 @@ export default function WriteTopic() {
     }
   }, [walletInterface]);
 
-  const handleWordSubmit = async (word: string, topicId?: TopicId) => {
+  const handleWordSubmit = async (word: string, topicId: TopicId | null) => {
     if (error) {
       console.error("Cannot submit word due to configuration error:", error);
       return;
     }
-
+  
     if (!client) {
       console.error("Hedera client not initialized.");
       return;
     }
 
+    // Helper function to split messages into chunks
+    const splitMessage = (message: string, maxChunkSize: number) => {
+      const chunks: string[] = [];
+      for (let i = 0; i < message.length; i += maxChunkSize) {
+        chunks.push(message.slice(i, i + maxChunkSize));
+      }
+      return chunks;
+    };
+  
     try {
       console.log('Submitted word:', word);
-
+  
       let currentTopicId: TopicId;
-
+  
       if (!topicId) {
         // Create a new topic
         const topicCreateTx = new TopicCreateTransaction();
         const topicCreateSubmit = await topicCreateTx.execute(client);
         const topicCreateReceipt = await topicCreateSubmit.getReceipt(client);
         const newTopicId: TopicId | null = topicCreateReceipt.topicId;
-
+  
         if (newTopicId === null) {
           throw new Error("Failed to create topic");
         }
-
+  
         console.log("New topic created with ID:", newTopicId.toString());
         setLastCreatedTopicId(newTopicId); // Update last created topic ID
         currentTopicId = newTopicId;
       } else {
         currentTopicId = topicId;
       }
-
-      // Submit a message to the topic
-      const messageTx = new TopicMessageSubmitTransaction({
-        topicId: currentTopicId,
-        message: word
-      });
-      const messageSubmit = await messageTx.execute(client);
-      const messageReceipt = await messageSubmit.getReceipt(client);
-
-      console.log("Message submitted to topic:", messageReceipt.status.toString());
-
+  
+      // Split message into chunks if it exceeds 1000 characters
+      const chunks = splitMessage(word, 1000);
+  
+      // Submit each chunk to the topic
+      for (const chunk of chunks) {
+        const messageTx = new TopicMessageSubmitTransaction({
+          topicId: currentTopicId,
+          message: chunk
+        });
+        const messageSubmit = await messageTx.execute(client);
+        const messageReceipt = await messageSubmit.getReceipt(client);
+  
+        console.log("Message submitted to topic:", messageReceipt.status.toString());
+      }
+  
       // Add new topic and message to the state
       setTopics([...topics, { topicId: currentTopicId, message: word }]);
     } catch (err) {
@@ -107,25 +121,15 @@ export default function WriteTopic() {
       setError("Failed to submit word. Please try again.");
     }
   };
+  
 
   return (
     <Stack alignItems="center" spacing={6}>
-      <Typography variant="h4" color="white">
-        Let's buidl a dApp on Hedera
-      </Typography>
-      <Typography variant="h6" color="teal">
+      <Typography variant="h6" color="orange">
         Store your wisdom on the hashgraph
       </Typography>
       {error && <Typography color="red">{error}</Typography>}
-      <WordInputBox onWordSubmit={(word) => handleWordSubmit(word)} />
-      {lastCreatedTopicId && (
-        <>
-          <Typography variant="h6" color="teal">
-            Submit another message to Topic {lastCreatedTopicId.toString()}
-          </Typography>
-          <WordInputBox onWordSubmit={(word) => handleWordSubmit(word, lastCreatedTopicId)} />
-        </>
-      )}
+      <WordInputBox onWordSubmit={(word) => handleWordSubmit(word, lastCreatedTopicId)} />
       {walletInterface !== null && (
         <>
           <Stack direction='row' gap={2} alignItems='center'>
