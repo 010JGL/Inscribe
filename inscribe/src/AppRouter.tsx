@@ -4,13 +4,13 @@ import {
   Routes
 } from "react-router-dom";
 import Home from "./pages/Home";
+import CreateTopic from "./pages/CreateTopic"
 
 export default function AppRouter() {
   return (
-    <Router>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/create-topic" element={<CreateTopic />} />
       </Routes>
-    </Router>
   )
 }

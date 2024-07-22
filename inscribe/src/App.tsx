@@ -8,6 +8,7 @@ import colorBackground from './assets/colors.png';
 import { theme } from './theme';
 import "./App.css";
 
+
 function App() {
   return (
     <ThemeProvider theme={theme}>
