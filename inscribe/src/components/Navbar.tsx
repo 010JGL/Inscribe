@@ -52,10 +52,10 @@ export default function NavBar() {
               <Grid item>
                 <Button
                   component={Link}
-                  to="/another-page"
+                  to="/write-message"
                   variant='contained'
                 >
-                  Another Page
+                  Write Message
                 </Button>
               </Grid>
             </Grid>
