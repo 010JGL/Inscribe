@@ -58,6 +58,15 @@ export default function NavBar() {
                   Write Message
                 </Button>
               </Grid>
+              <Grid item>
+                <Button
+                  component={Link}
+                  to="/upload-pdf"
+                  variant='contained'
+                >
+                  Upload PDF
+                </Button>
+              </Grid>
             </Grid>
           </Grid>
 

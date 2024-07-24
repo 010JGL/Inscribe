@@ -17,8 +17,10 @@
     "ethers": "^5.7.2",
     "os-browserify": "^0.3.0",
     "path-browserify": "^1.0.1",
+    "pdfjs-dist": "^2.16.105",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-dropzone": "^14.2.3",
     "react-router-dom": "^6.25.1",
     "react-scripts": "5.0.1",
     "typescript": "^4.9.5"
@@ -43,5 +45,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@types/react-dropzone": "^5.1.0"
   }
 }
