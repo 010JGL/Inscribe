@@ -1,12 +1,14 @@
-import { AppBar, Button, Toolbar, Typography, Grid } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { AppBar, Button, Toolbar, Typography, Grid, Menu, MenuItem, IconButton } from '@mui/material';
+import { useEffect, useState, MouseEvent } from 'react'; // Import MouseEvent
 import { Link } from 'react-router-dom';
 import HBARLogo from "../assets/hbar-logo.svg";
 import { useWalletInterface } from '../services/wallets/useWalletInterface';
 import { WalletSelectionDialog } from './WalletSelectionDialog';
+import MenuIcon from '@mui/icons-material/Menu'; // Import menu icon
 
 export default function NavBar() {
   const [open, setOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null); // Specify the type for anchorEl
   const { accountId, walletInterface } = useWalletInterface();
 
   const handleConnect = async () => {
@@ -15,6 +17,14 @@ export default function NavBar() {
     } else {
       setOpen(true);
     }
+  };
+
+  const handleMenuClick = (event: MouseEvent<HTMLElement>) => { // Specify the type for the event parameter
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
   };
 
   useEffect(() => {
@@ -39,32 +49,46 @@ export default function NavBar() {
           </Grid>
 
           <Grid item>
-            <Grid container spacing={2} justifyContent="center">
+            <Grid container spacing={2} justifyContent="center" alignItems="center">
+              <Grid item sx={{ display: 'flex', flexDirection: 'row', marginRight: '60px' }}>
+                <Typography variant="h6" color="inherit" pr={1}>Services</Typography>
+                <IconButton
+                  edge="end"
+                  color="primary"
+                  aria-controls="simple-menu"
+                  aria-haspopup="true"
+                  onClick={handleMenuClick}
+                >
+                  <MenuIcon />
+                </IconButton>
+                <Menu
+                  id="simple-menu"
+                  anchorEl={anchorEl}
+                  keepMounted
+                  open={Boolean(anchorEl)}
+                  onClose={handleMenuClose}
+                >
+                  <MenuItem component={Link} to="/create-topic" onClick={handleMenuClose}>Create Topic</MenuItem>
+                  <MenuItem component={Link} to="/write-message" onClick={handleMenuClose}>Write Message</MenuItem>
+                  <MenuItem component={Link} to="/upload-pdf" onClick={handleMenuClose}>Upload PDF</MenuItem>
+                </Menu>
+              </Grid>
               <Grid item>
                 <Button
                   component={Link}
-                  to="/create-topic"
+                  to="/search"
                   variant='contained'
                 >
-                  Create Topic
+                  Search
                 </Button>
               </Grid>
               <Grid item>
                 <Button
                   component={Link}
-                  to="/write-message"
+                  to="/collection"
                   variant='contained'
                 >
-                  Write Message
-                </Button>
-              </Grid>
-              <Grid item>
-                <Button
-                  component={Link}
-                  to="/upload-pdf"
-                  variant='contained'
-                >
-                  Upload PDF
+                  Collection
                 </Button>
               </Grid>
             </Grid>
@@ -84,3 +108,4 @@ export default function NavBar() {
     </AppBar>
   );
 }
+

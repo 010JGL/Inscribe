@@ -70,7 +70,7 @@ export default function CreateTopic() {
           />
         }
         label="Create Private Topic"
-        sx={{ alignSelf: 'flex-end' }}
+        sx={{ alignSelf: 'center', color: '#FF5733' }}
       />
       
       <WordInputBox onWordSubmit={(word) => {

@@ -7,6 +7,7 @@ import Home from "./pages/Home";
 import CreateTopic from "./pages/CreateTopic"
 import WriteMessage from "./pages/WriteMessage"
 import UploadPDF from "./pages/UploadPDF"
+import SearchTopic from "./pages/SearchTopic"
 
 export default function AppRouter() {
   return (
@@ -15,6 +16,7 @@ export default function AppRouter() {
         <Route path="/create-topic" element={<CreateTopic />} />
         <Route path="/write-message" element={<WriteMessage />} />
         <Route path="/upload-pdf" element={<UploadPDF />} />
+        <Route path="/search" element={<SearchTopic />} />
       </Routes>
   )
 }

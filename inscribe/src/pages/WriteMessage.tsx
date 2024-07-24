@@ -106,7 +106,7 @@ const WriteMessage = () => {
             />
           }
           label="Write to a Private Topic"
-          sx={{ alignSelf: 'flex-end' }}
+          sx={{ alignSelf: 'center', color: '#FF5733' }}
         />
         <TextField
           label="Topic ID"
