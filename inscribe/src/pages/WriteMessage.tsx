@@ -93,7 +93,7 @@ const WriteMessage = () => {
   };
 
   return (
-    <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+    <Box display="flex" justifyContent="center" alignItems="center">
       <Stack alignItems="center" spacing={4} sx={{ maxWidth: '600px', width: '100%' }}>
         <Typography variant="h4" color="Orange">
           Write to a Topic
