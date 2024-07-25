@@ -2,13 +2,11 @@ import React, { useState, useCallback, useEffect } from "react";
 import { Typography, Button, Box, CircularProgress, LinearProgress, Container } from "@mui/material";
 import { useDropzone } from "react-dropzone";
 import * as pdfjsLib from "pdfjs-dist";
-import { AccountId, Client, PrivateKey, TopicMessageSubmitTransaction, TopicId } from "@hashgraph/sdk";
-import SendIcon from "@mui/icons-material/Send";
+import { Client, PrivateKey, TopicId } from "@hashgraph/sdk";
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
 import { handleCreateTopic } from "../components/HandleCreateTopic";
 import { initializeClient, splitMessagesIntoChunks, sleep, submitMessageWithRetries } from "../utils/hederaUtils";
 import Dropzone from "../components/Dropzone";
-import { dropzoneStyle, buttonStyle } from "../config/styles";
 import LoadingButton from "../components/LoadingButton";
 
 // Ensure the worker is set up correctly
@@ -24,7 +22,7 @@ const UploadPDF = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [client, setClient] = useState<Client | null>(null);
   const [isPrivate, setIsPrivate] = useState(false);
-  const [pdfText, setPdfText] = useState<string | null>(null);
+  const [pdfContent, setPdfContent] = useState<{ text: string; instructions: any } | null>(null);
   const [showTopicSwitch, setShowTopicSwitch] = useState(false);
   const [uploadingMessages, setUploadingMessages] = useState(false);
   const [topics, setTopics] = useState<
@@ -65,19 +63,36 @@ const UploadPDF = () => {
       const pdfData = new Uint8Array(await file.arrayBuffer());
       const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
       const numPages = pdf.numPages;
-      const metadata: any = { pages: [] };
+      const content: { text: string; instructions: any } = { text: "", instructions: { pages: [] } };
 
       for (let pageNum = 1; pageNum <= numPages; pageNum++) {
         const page = await pdf.getPage(pageNum);
         const textContent = await page.getTextContent();
-        const pageMetadata = { items: textContent.items.map((item: any) =>
-          typeof item === "object" && "str" in item ? { text: item.str, x: item.transform[4], y: item.transform[5] } : null
-        ).filter((item: any) => item !== null) };
 
-        metadata.pages.push(pageMetadata);
+        const pageInstructions: any[] = [];
+
+        textContent.items.forEach((item: any) => {
+          if (typeof item === "object" && "str" in item) {
+            const [fontSize, fontWeight, textAlign] = [item.transform[0], item.fontName.includes('Bold') ? 'bold' : 'normal', determineTextAlignment(item.transform)];
+
+            pageInstructions.push({
+              text: item.str,
+              x: item.transform[4],
+              y: item.transform[5],
+              fontSize,
+              fontWeight,
+              textAlign,
+              isCapitalized: item.str === item.str.toUpperCase(),
+              isPunctuation: /[.,?!;:]/.test(item.str)
+            });
+          }
+        });
+
+        content.text += `\n\nPage ${pageNum}\n`;
+        content.instructions.pages.push(pageInstructions);
       }
 
-      setPdfText(JSON.stringify(metadata));
+      setPdfContent(content);
       setSuccess("File processed successfully");
       setShowTopicSwitch(true);
     } catch (error) {
@@ -88,10 +103,16 @@ const UploadPDF = () => {
     }
   };
 
+  // Function to determine text alignment based on transform matrix
+  const determineTextAlignment = (transform: number[]) => {
+    const [a, b] = transform;
+    return (Math.abs(b) > 0.5) ? 'center' : 'left';
+  };
+
   useEffect(() => {
     const uploadMessages = async () => {
-      if (pdfText && client && !uploadingMessages) {
-        const messages = splitMessagesIntoChunks(pdfText, 8000); // 100KB max chunk size
+      if (pdfContent && client && !uploadingMessages) {
+        const messages = splitMessagesIntoChunks(JSON.stringify(pdfContent), 8000); // 100KB max chunk size
         setUploadingMessages(true);
 
         for (let i = 0; i < messages.length; i += 100) {
@@ -114,16 +135,16 @@ const UploadPDF = () => {
       }
     };
 
-    if (topics.length > 0 && pdfText && client) {
+    if (topics.length > 0 && pdfContent && client) {
       uploadMessages();
     }
-  }, [topics, pdfText, client]);
+  }, [topics, pdfContent, client]);
 
   const handleCreateTopicClick = () => {
     handleCreateTopic(
       client,
       isPrivate,
-      pdfText,
+      JSON.stringify(pdfContent),
       setTopics,
       setLastCreatedTopicId,
       setSuccess,
@@ -147,7 +168,7 @@ const UploadPDF = () => {
         )}
         {success && <Typography color="success" sx={{ marginBottom: '20px' }}>{success}</Typography>}
         {error && <Typography color="error" sx={{ marginBottom: '20px' }}>{error}</Typography>}
-        {pdfText && showTopicSwitch && (
+        {pdfContent && showTopicSwitch && (
           <>
             <Typography variant="h6" sx={{ marginBottom: '20px', color: 'orange' }}>Create Topic:</Typography>
             <Button
@@ -178,6 +199,7 @@ const UploadPDF = () => {
 };
 
 export default UploadPDF;
+
 
 
 
