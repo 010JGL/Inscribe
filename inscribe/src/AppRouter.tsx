@@ -8,6 +8,7 @@ import CreateTopic from "./pages/CreateTopic"
 import WriteMessage from "./pages/WriteMessage"
 import UploadPDF from "./pages/UploadPDF"
 import SearchTopic from "./pages/SearchTopic"
+import Collection from "./pages/Collection"
 
 export default function AppRouter() {
   return (
@@ -17,6 +18,7 @@ export default function AppRouter() {
         <Route path="/write-message" element={<WriteMessage />} />
         <Route path="/upload-pdf" element={<UploadPDF />} />
         <Route path="/search" element={<SearchTopic />} />
+        <Route path="/collection" element={<Collection />} />
       </Routes>
   )
 }

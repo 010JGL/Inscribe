@@ -57,7 +57,7 @@ export default function CreateTopic() {
 
   return (
     <Stack alignItems="center" spacing={6}>
-      <Typography variant="h4" color="orange">
+      <Typography variant="h3" color="white">
         Store your wisdom on the hashgraph
       </Typography>
       {error && <Typography color="red">{error}</Typography>}
@@ -70,7 +70,7 @@ export default function CreateTopic() {
           />
         }
         label="Create Private Topic"
-        sx={{ alignSelf: 'center', color: '#FF5733' }}
+        sx={{ alignSelf: 'center', color: 'white' }}
       />
       
       <WordInputBox onWordSubmit={(word) => {
@@ -120,7 +120,7 @@ export default function CreateTopic() {
         </Stack>
       )}
       
-      <Typography variant="h6" color="orange">
+      <Typography variant="h4" color="white">
         Created Topics
       </Typography>
       

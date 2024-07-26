@@ -155,7 +155,7 @@ const UploadPDF = () => {
 
   return (
     <Container>
-      <Typography variant="h4" sx={{ color: 'orange', textAlign: "center" }}>Upload PDF</Typography>
+      <Typography variant="h3" sx={{ color: 'White', textAlign: "center" }}>Upload PDF</Typography>
       <Dropzone onDrop={onDrop} />
       <Box sx={{ textAlign: "center", marginBottom: "20px" }}>
         {file && (

@@ -4,7 +4,7 @@ import NavBar from './components/Navbar';
 import { Box, ThemeProvider } from '@mui/material';
 import { AllWalletsProvider } from './services/wallets/AllWalletsProvider';
 import AppRouter from './AppRouter';
-import colorBackground from './assets/colors.png';
+import city from './assets/city.jpeg'; 
 import { theme } from './theme';
 import "./App.css";
 
@@ -18,12 +18,13 @@ function App() {
           sx={{
             display: 'flex',
             flexDirection: 'column',
-            minHeight: '100vh',
+            minHeight: '180vh',
             backgroundColor: '#222222',
-            backgroundImage: `url(${colorBackground})`,
+            backgroundImage: `url(${city})`, // Updated backgroundImage
             backgroundSize: 'cover',
             backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'center'
+            backgroundPosition: 'center',
+            backgroundAttachment: 'fixed', // Added backgroundAttachment
           }}
         >
           <header>

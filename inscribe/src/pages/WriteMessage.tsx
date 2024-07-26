@@ -95,8 +95,8 @@ const WriteMessage = () => {
   return (
     <Box display="flex" justifyContent="center" alignItems="center">
       <Stack alignItems="center" spacing={4} sx={{ maxWidth: '600px', width: '100%' }}>
-        <Typography variant="h4" color="Orange">
-          Write to a Topic
+        <Typography variant="h3" color="white">
+          Write to Topic
         </Typography>
         <FormControlLabel
           control={
@@ -105,8 +105,8 @@ const WriteMessage = () => {
               onChange={handlePrivateSwitchChange}
             />
           }
-          label="Write to a Private Topic"
-          sx={{ alignSelf: 'center', color: '#FF5733' }}
+          label="Write to Private Topic"
+          sx={{ alignSelf: 'center', color: 'white' }}
         />
         <TextField
           label="Topic ID"
