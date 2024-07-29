@@ -7,7 +7,7 @@ import AppRouter from './AppRouter';
 import city from './assets/city.jpeg'; 
 import { theme } from './theme';
 import "./App.css";
-
+import milkyWay2 from './assets/milky-way2.jpg'; 
 
 function App() {
   return (
@@ -20,7 +20,7 @@ function App() {
             flexDirection: 'column',
             minHeight: '180vh',
             backgroundColor: '#222222',
-            backgroundImage: `url(${city})`, // Updated backgroundImage
+            backgroundImage: `url(${milkyWay2})`, // Updated backgroundImage
             backgroundSize: 'cover',
             backgroundRepeat: 'no-repeat',
             backgroundPosition: 'center',

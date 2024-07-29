@@ -19,6 +19,7 @@ interface TopicInfo {
     message: string;
   }>;
   pdfData?: PDFData;
+  tweetData?: TweetData; // Add tweetData field
 }
 
 interface PDFData {
@@ -32,6 +33,13 @@ interface PDFData {
     isCapitalized: boolean;
     isPunctuation: boolean;
   }>>;
+}
+
+interface TweetData {
+  name: string;
+  username: string;
+  content: string;
+  timestamp: string;
 }
 
 const SearchTopic = () => {
@@ -56,6 +64,29 @@ const SearchTopic = () => {
     }
   };
 
+  const fetchAndDisplayTweet = (tweetData: TweetData) => {
+    const correctTimestamp = tweetData.timestamp.replace('Â·', '·');
+  
+    return (
+      <Card sx={{ padding: 2, marginTop: 2 }}>
+        <Typography variant="h6" sx={{ marginBottom: 1 }}>
+          {tweetData.name}
+        </Typography>
+        <Typography variant="subtitle1" sx={{ marginBottom: 2 }}>
+          {tweetData.username}
+        </Typography>
+        <Typography variant="body1" sx={{ whiteSpace: "pre-wrap", marginBottom: 2 }}>
+          {tweetData.content}
+        </Typography>
+        <Typography variant="body2" color="textSecondary">
+          {correctTimestamp}
+        </Typography>
+      </Card>
+    );
+  };
+  
+  
+
   const handleFetchInfo = async () => {
     if (!topicId) {
       setError("Please enter a valid topic ID.");
@@ -79,15 +110,18 @@ const SearchTopic = () => {
       console.log("Messages retrieved:", messages);
 
       let pdfData: PDFData | undefined = { pages: [] }; // Default to empty pages
+      let tweetData: TweetData | undefined;
 
       for (const msg of messages) {
         try {
           const parsedMessage = JSON.parse(msg.message);
           console.log("Parsed message:", parsedMessage);
 
-          if (parsedMessage.instructions) {
+          if (parsedMessage.tweetData) {
+            tweetData = parsedMessage.tweetData as TweetData;
+            break; // Stop after finding the first valid tweet data
+          } else if (parsedMessage.instructions) {
             pdfData = parsedMessage.instructions as PDFData;
-            break; // Stop after the first valid PDF data
           }
         } catch (e) {
           console.error("JSON parse error:", e);
@@ -101,6 +135,7 @@ const SearchTopic = () => {
         topicId: topicIdObj.toString(),
         messages,
         pdfData: pdfData.pages.length > 0 ? pdfData : undefined, // Set PDF data if pages exist
+        tweetData: tweetData // Set tweet data if found
       });
       setError(null);
     } catch (error: unknown) {
@@ -194,7 +229,9 @@ const SearchTopic = () => {
         Fetch Topic Info
       </Button>
       {error && <Typography color="error">{error}</Typography>}
-      {topicInfo && topicInfo.pdfData ? (
+      {topicInfo && topicInfo.tweetData ? (
+        fetchAndDisplayTweet(topicInfo.tweetData) // Render tweet data if present
+      ) : topicInfo && topicInfo.pdfData ? (
         renderPDFData()
       ) : (
         renderMessages()
@@ -204,6 +241,7 @@ const SearchTopic = () => {
 };
 
 export default SearchTopic;
+
 
 
 

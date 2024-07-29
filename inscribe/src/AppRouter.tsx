@@ -9,6 +9,8 @@ import WriteMessage from "./pages/WriteMessage"
 import UploadPDF from "./pages/UploadPDF"
 import SearchTopic from "./pages/SearchTopic"
 import Collection from "./pages/Collection"
+import Contact from "./pages/Contact"
+import SaveTweet from './pages/SaveTweet'
 
 export default function AppRouter() {
   return (
@@ -19,6 +21,8 @@ export default function AppRouter() {
         <Route path="/upload-pdf" element={<UploadPDF />} />
         <Route path="/search" element={<SearchTopic />} />
         <Route path="/collection" element={<Collection />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/save-tweet" element={<SaveTweet />} />
       </Routes>
   )
 }

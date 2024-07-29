@@ -71,6 +71,7 @@ export default function NavBar() {
                   <MenuItem component={Link} to="/create-topic" onClick={handleMenuClose}>Create Topic</MenuItem>
                   <MenuItem component={Link} to="/write-message" onClick={handleMenuClose}>Write Message</MenuItem>
                   <MenuItem component={Link} to="/upload-pdf" onClick={handleMenuClose}>Upload PDF</MenuItem>
+                  <MenuItem component={Link} to="/save-tweet" onClick={handleMenuClose}>Save Tweet</MenuItem>
                 </Menu>
               </Grid>
               <Grid item>
