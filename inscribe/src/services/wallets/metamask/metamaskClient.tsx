@@ -73,7 +73,9 @@ export const connectToMetamask = async () => {
   return accounts;
 }
 
-class MetaMaskWallet implements WalletInterface {
+export class MetaMaskWallet implements WalletInterface {
+  private _accountId: string | null = null;
+
   private convertAccountIdToSolidityAddress(accountId: AccountId): string {
     const accountIdString = accountId.evmAddress !== null
       ? accountId.evmAddress.toString()
@@ -193,8 +195,33 @@ class MetaMaskWallet implements WalletInterface {
     }
   }
 
+  async connect() {
+    const accounts = await connectToMetamask();
+    if (accounts.length > 0) {
+      this._accountId = accounts[0];
+    } else {
+      this._accountId = null;
+    }
+  }
+
+  get accountId() {
+    return this._accountId;
+  }
+
   disconnect() {
-    alert("Please disconnect using the Metamask extension.")
+    alert("Please disconnect using the Metamask extension.");
+  }
+
+  // Add an isConnected method
+  async isConnected() {
+    try {
+      const provider = getProvider();
+      const accounts = await provider.listAccounts();
+      return accounts.length > 0;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
   }
 };
 
@@ -202,6 +229,7 @@ export const metamaskWallet = new MetaMaskWallet();
 
 export const MetaMaskClient = () => {
   const { setMetamaskAccountAddress } = useContext(MetamaskContext);
+
   useEffect(() => {
     // set the account address if already connected
     try {

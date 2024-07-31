@@ -12,10 +12,14 @@ export default function NavBar() {
   const { accountId, walletInterface } = useWalletInterface();
 
   const handleConnect = async () => {
-    if (accountId) {
-      walletInterface.disconnect();
+    if (walletInterface) {
+      if (accountId) {
+        walletInterface.disconnect();
+      } else {
+        setOpen(true);
+      }
     } else {
-      setOpen(true);
+      console.error("Wallet interface is not available.");
     }
   };
 
@@ -109,4 +113,3 @@ export default function NavBar() {
     </AppBar>
   );
 }
-

@@ -1,30 +1,29 @@
-import { useContext } from "react"
-import { MetamaskContext } from "../../contexts/MetamaskContext";
-import { WalletConnectContext } from "../../contexts/WalletConnectContext";
-import { metamaskWallet } from "./metamask/metamaskClient";
-import { walletConnectWallet } from "./walletconnect/walletConnectClient";
+import { useState, useEffect } from 'react';
+import { MetaMaskWallet } from './metamask/metamaskClient';
+import { WalletConnectWallet } from './walletconnect/walletConnectClient';
 
-// Purpose: This hook is used to determine which wallet interface to use
-// Example: const { accountId, walletInterface } = useWalletInterface();
-// Returns: { accountId: string | null, walletInterface: WalletInterface | null }
-export const useWalletInterface = () => {
-  const metamaskCtx = useContext(MetamaskContext);
-  const walletConnectCtx = useContext(WalletConnectContext);
+interface WalletInterfaceState {
+  walletInterface: MetaMaskWallet | WalletConnectWallet | null;
+  accountId: string | null;
+  isConnected: boolean;
+}
 
-  if (metamaskCtx.metamaskAccountAddress) {
-    return {
-      accountId: metamaskCtx.metamaskAccountAddress,
-      walletInterface: metamaskWallet
+export function useWalletInterface(): WalletInterfaceState {
+  const [walletInterface, setWalletInterface] = useState<MetaMaskWallet | WalletConnectWallet | null>(null);
+  const [accountId, setAccountId] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+
+  useEffect(() => {
+    const initializeWallet = async () => {
+      const wallet = new MetaMaskWallet(); // Or switch to WalletConnectWallet based on your logic
+      const connected = await wallet.isConnected();
+      setWalletInterface(wallet);
+      setAccountId(connected ? wallet.accountId : null);
+      setIsConnected(connected);
     };
-  } else if (walletConnectCtx.accountId) {
-    return {
-      accountId: walletConnectCtx.accountId,
-      walletInterface: walletConnectWallet
-    }
-  } else {
-    return {
-      accountId: null,
-      walletInterface: null
-    };
-  }
+
+    initializeWallet();
+  }, []);
+
+  return { walletInterface, accountId, isConnected };
 }
