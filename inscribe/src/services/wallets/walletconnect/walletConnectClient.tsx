@@ -1,11 +1,13 @@
+// src/services/wallets/useWalletInterface.ts
+
 import { WalletConnectContext } from "../../../contexts/WalletConnectContext";
 import { useCallback, useContext, useEffect } from 'react';
 import { WalletInterface } from "../walletInterface";
-import { AccountId, ContractExecuteTransaction, ContractId, LedgerId, TokenAssociateTransaction, TokenId, Transaction, TransactionId, TransferTransaction, Client } from "@hashgraph/sdk";
+import { AccountId, ContractExecuteTransaction, ContractId, LedgerId, TokenAssociateTransaction, TokenId, TransactionId, TransferTransaction, Client } from "@hashgraph/sdk";
 import { ContractFunctionParameterBuilder } from "../contractFunctionParameterBuilder";
 import { appConfig } from "../../../config";
 import { SignClientTypes } from "@walletconnect/types";
-import { DAppConnector, HederaJsonRpcMethod, HederaSessionEvent, HederaChainId, SignAndExecuteTransactionParams, transactionToBase64String } from "@hashgraph/hedera-wallet-connect";
+import { DAppConnector, HederaJsonRpcMethod, HederaSessionEvent, HederaChainId } from "@hashgraph/hedera-wallet-connect";
 import EventEmitter from "events";
 
 // Created refreshEvent because `dappConnector.walletConnectClient.on(eventName, syncWithWalletConnectContext)` would not call syncWithWalletConnectContext
@@ -14,7 +16,7 @@ const refreshEvent = new EventEmitter();
 
 // Create a new project in walletconnect cloud to generate a project id
 const walletConnectProjectId = "377d75bb6f86a2ffd427d032ff6ea7d3";
-const currentNetworkConfig = appConfig.networks.testnet;
+const currentNetworkConfig = appConfig.networks.testnet; // This can be dynamic based on environment or parameter
 const hederaNetwork = currentNetworkConfig.network;
 const hederaClient = Client.forName(hederaNetwork);
 
@@ -26,27 +28,33 @@ const metadata: SignClientTypes.Metadata = {
   url: window.location.origin,
   icons: [window.location.origin + "/logo192.png"],
 }
-const dappConnector = new DAppConnector(
-  metadata,
-  LedgerId.fromString(hederaNetwork),
-  walletConnectProjectId,
-  Object.values(HederaJsonRpcMethod),
-  [HederaSessionEvent.ChainChanged, HederaSessionEvent.AccountsChanged],
-  [HederaChainId.Testnet],
-);
 
-// ensure walletconnect is initialized only once
+const createDAppConnector = (network: LedgerId) => {
+  return new DAppConnector(
+    metadata,
+    network,
+    walletConnectProjectId,
+    Object.values(HederaJsonRpcMethod),
+    [HederaSessionEvent.ChainChanged, HederaSessionEvent.AccountsChanged],
+    [network === LedgerId.MAINNET ? HederaChainId.Mainnet : HederaChainId.Testnet],
+  );
+};
+
+// Ensure walletconnect is initialized only once
+let dappConnector: DAppConnector;
 let walletConnectInitPromise: Promise<void> | undefined = undefined;
-const initializeWalletConnect = async () => {
+const initializeWalletConnect = async (isMainnet: boolean) => {
   if (walletConnectInitPromise === undefined) {
+    const network = isMainnet ? LedgerId.MAINNET : LedgerId.TESTNET;
+    dappConnector = createDAppConnector(network);
     walletConnectInitPromise = dappConnector.init();
   }
   await walletConnectInitPromise;
 };
 
-export const openWalletConnectModal = async () => {
-  await initializeWalletConnect();
-  await dappConnector.openModal().then((x) => {
+export const openWalletConnectModal = async (isMainnet: boolean) => {
+  await initializeWalletConnect(isMainnet);
+  await dappConnector.openModal().then((x: any) => {
     refreshEvent.emit("sync");
   });
 };
@@ -123,20 +131,22 @@ class WalletConnectWallet implements WalletInterface {
     // after getting the contract call results, use ethers and abi.decode to decode the call_result
     return txResult ? txResult.transactionId : null;
   }
+
   disconnect() {
     dappConnector.disconnectAll().then(() => {
       refreshEvent.emit("sync");
     });
   }
 };
+
 export const walletConnectWallet = new WalletConnectWallet();
 
-// this component will sync the walletconnect state with the context
-export const WalletConnectClient = () => {
-  // use the HashpackContext to keep track of the hashpack account and connection
+// This component will sync the walletconnect state with the context
+export const WalletConnectClient = ({ isMainnet }: { isMainnet: boolean }) => {
+  // Use the WalletConnectContext to keep track of the wallet connect account and connection
   const { setAccountId, setIsConnected } = useContext(WalletConnectContext);
 
-  // sync the walletconnect state with the context
+  // Sync the walletconnect state with the context
   const syncWithWalletConnectContext = useCallback(() => {
     const accountId = dappConnector.signers[0]?.getAccountId()?.toString();
     if (accountId) {
@@ -152,13 +162,14 @@ export const WalletConnectClient = () => {
     // Sync after walletconnect finishes initializing
     refreshEvent.addListener("sync", syncWithWalletConnectContext);
 
-    initializeWalletConnect().then(() => {
+    initializeWalletConnect(isMainnet).then(() => {
       syncWithWalletConnectContext();
     });
 
     return () => {
       refreshEvent.removeListener("sync", syncWithWalletConnectContext);
     }
-  }, [syncWithWalletConnectContext]);
+  }, [syncWithWalletConnectContext, isMainnet]);
+
   return null;
 };

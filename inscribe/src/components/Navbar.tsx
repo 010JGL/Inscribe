@@ -1,25 +1,26 @@
 import { AppBar, Button, Toolbar, Typography, Grid, Menu, MenuItem, IconButton } from '@mui/material';
-import { useEffect, useState, MouseEvent } from 'react'; // Import MouseEvent
+import { useEffect, useState, MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import HBARLogo from "../assets/hbar-logo.svg";
 import { useWalletInterface } from '../services/wallets/useWalletInterface';
 import { WalletSelectionDialog } from './WalletSelectionDialog';
-import MenuIcon from '@mui/icons-material/Menu'; // Import menu icon
+import MenuIcon from '@mui/icons-material/Menu';
 
 export default function NavBar() {
   const [open, setOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null); // Specify the type for anchorEl
-  const { accountId, walletInterface } = useWalletInterface();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [isMainnet, setIsMainnet] = useState(false);
+  const { accountId, isConnected, walletInterface } = useWalletInterface();
 
   const handleConnect = async () => {
-    if (accountId) {
+    if (isConnected) {
       walletInterface.disconnect();
     } else {
       setOpen(true);
     }
   };
 
-  const handleMenuClick = (event: MouseEvent<HTMLElement>) => { // Specify the type for the event parameter
+  const handleMenuClick = (event: MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
 
@@ -105,8 +106,7 @@ export default function NavBar() {
           </Grid>
         </Grid>
       </Toolbar>
-      <WalletSelectionDialog open={open} setOpen={setOpen} onClose={() => setOpen(false)} />
+      <WalletSelectionDialog open={open} setOpen={setOpen} onClose={() => setOpen(false)} isMainnet={isMainnet} />
     </AppBar>
   );
 }
-

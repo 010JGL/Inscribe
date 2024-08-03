@@ -10,9 +10,12 @@ import "./App.css";
 import milkyWay2 from './assets/milky-way2.jpg'; 
 
 function App() {
+  // Define the isMainnet state or constant based on your application's requirements
+  const isMainnet = false; // or true, depending on your environment
+
   return (
     <ThemeProvider theme={theme}>
-      <AllWalletsProvider>
+      <AllWalletsProvider isMainnet={isMainnet}>
         <CssBaseline />
         <Box
           sx={{
@@ -44,3 +47,4 @@ function App() {
 }
 
 export default App;
+

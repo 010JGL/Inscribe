@@ -1,17 +1,24 @@
 import { createContext, useState, ReactNode } from "react";
 
-const defaultValue = {
-  accountId: '',
-  setAccountId: (newValue: string) => { },
-  isConnected: false,
-  setIsConnected: (newValue: boolean) => { },
+interface WalletConnectContextType {
+  accountId: string;
+  setAccountId: (newValue: string) => void;
+  isConnected: boolean;
+  setIsConnected: (newValue: boolean) => void;
 }
 
-export const WalletConnectContext = createContext(defaultValue);
+const defaultValue: WalletConnectContextType = {
+  accountId: '',
+  setAccountId: () => {},
+  isConnected: false,
+  setIsConnected: () => {},
+}
 
-export const WalletConnectContextProvider = (props: { children: ReactNode | undefined }) => {
-  const [accountId, setAccountId] = useState(defaultValue.accountId);
-  const [isConnected, setIsConnected] = useState(defaultValue.isConnected);
+export const WalletConnectContext = createContext<WalletConnectContextType>(defaultValue);
+
+export const WalletConnectContextProvider = (props: { children: ReactNode }) => {
+  const [accountId, setAccountId] = useState<string>(defaultValue.accountId);
+  const [isConnected, setIsConnected] = useState<boolean>(defaultValue.isConnected);
 
   return (
     <WalletConnectContext.Provider
@@ -26,3 +33,4 @@ export const WalletConnectContextProvider = (props: { children: ReactNode | unde
     </WalletConnectContext.Provider>
   )
 }
+
