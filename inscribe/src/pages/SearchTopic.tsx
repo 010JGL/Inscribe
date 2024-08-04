@@ -254,8 +254,9 @@ const SearchTopic = () => {
   };
 
   return (
-    <div className="App" style={{ padding: '20px' }}>
-      <Typography variant="h4" style={{ marginBottom: '20px' }}>Search Topic</Typography>
+    <Stack alignItems="center" spacing={6}>
+    
+      <Typography variant="h3" style={{ margin: '20 0', color: 'orange' }}>Search Topic</Typography>
       <Stack direction="row" spacing={2} style={{ marginBottom: '20px' }}>
         <TextField
           label="Topic ID"
@@ -263,7 +264,7 @@ const SearchTopic = () => {
           value={topicId}
           onChange={(e) => setTopicId(e.target.value)}
         />
-        <Button variant="contained" onClick={handleFetchInfo}>Fetch Topic Info</Button>
+        <Button variant="contained" onClick={handleFetchInfo}>Fetch Topic</Button>
       </Stack>
       {error && <Typography color="error">{error}</Typography>}
       {topicInfo && (
@@ -272,7 +273,8 @@ const SearchTopic = () => {
           {topicInfo.pdfData && renderPDFData()}
         </>
       )}
-    </div>
+    
+    </Stack>
   );
 };
 

@@ -51,7 +51,7 @@ export default function NavBar() {
           <Grid item>
             <Grid container spacing={2} justifyContent="center" alignItems="center">
               <Grid item sx={{ display: 'flex', flexDirection: 'row', marginRight: '60px' }}>
-                <Typography variant="h6" color="inherit" pr={1}>Services</Typography>
+                <Typography variant="h6" color="orange" pr={1}>Inscribe</Typography>
                 <IconButton
                   edge="end"
                   color="primary"
@@ -102,12 +102,12 @@ export default function NavBar() {
             >
               {accountId ? `Connected: ${accountId}` : 'Connect Wallet'}
             </Button>
-          </Grid>
-          <Grid item>
+          
             <Button
               component={Link}
               to="/login"
               variant='outlined'
+              sx= {{ marginLeft: "20px" }}
             >
               Login
             </Button>

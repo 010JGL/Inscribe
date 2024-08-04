@@ -101,11 +101,11 @@ export default function LoginSignUp() {
   };
 
   return (
-    <Container maxWidth="sm" style={{ marginTop: '2rem' }}>
-      <Typography variant="h4" gutterBottom align="center">
+    <Container maxWidth="sm" style={{ marginTop: '1rem' }}>
+      <Typography variant="h3" gutterBottom align="center" sx={{ color: "orange" }}>
         {isSignUp ? 'Sign Up' : 'Login'}
       </Typography>
-      <Grid container spacing={2} direction="column" alignItems="center">
+      <Grid container spacing={4} direction="column" alignItems="center">
         <Grid item xs={12}>
           <TextField
             label="Email"

@@ -131,16 +131,19 @@ const Collection = () => {
   );
 
   return (
-    <Stack spacing={2} alignItems="center">
-      <TextField
-        label="Topic ID"
-        variant="outlined"
-        value={topicId}
-        onChange={(e) => setTopicId(e.target.value)}
-      />
-      <Button variant="contained" color="primary" onClick={handleAddTopic}>
-        Add Topic
-      </Button>
+    <Stack spacing={4} alignItems="center">
+      <Typography variant="h4" sx={{ color: "orange" }}>Add a Topic</Typography>
+      <Stack direction="row" spacing={2} alignItems="center">
+        <TextField
+          label="Topic ID"
+          variant="outlined"
+          value={topicId}
+          onChange={(e) => setTopicId(e.target.value)}
+        />
+        <Button variant="contained" color="primary" onClick={handleAddTopic}>
+          Add Topic
+        </Button>
+      </Stack>
       <Typography variant="h4" sx={{ color: "white" }}>Collection</Typography>
       <Grid container spacing={2}>
         {currentTopics.map((topic) => (
@@ -165,7 +168,7 @@ const Collection = () => {
       )}
       {error && <Typography color="error">{error}</Typography>}
       {selectedTopic && topicInfo && (
-        <Card style={{ width: '80%', margin: '20px 0' }}>
+        <Card style={{ width: '80%', margin: '20px 0', backgroundColor: '#f5f5f5' }}>
           <CardContent>
             <Typography variant="h6">Topic ID: {topicInfo.topicId}</Typography>
             <Typography variant="body1">Messages Count: {topicInfo.messages.length}</Typography>
@@ -192,6 +195,7 @@ const Collection = () => {
 };
 
 export default Collection;
+
 
 
 

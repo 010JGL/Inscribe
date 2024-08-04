@@ -95,7 +95,7 @@ const WriteMessage = () => {
   return (
     <Box display="flex" justifyContent="center" alignItems="center">
       <Stack alignItems="center" spacing={4} sx={{ maxWidth: '600px', width: '100%' }}>
-        <Typography variant="h3" color="white">
+        <Typography variant="h3" color="orange">
           Write to Topic
         </Typography>
         <FormControlLabel

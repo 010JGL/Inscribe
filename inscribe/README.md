@@ -88,3 +88,6 @@ Hackathon project 2024 Hello Future
 - add user messages for feedback
 
 - add testing 
+
+- Collection page: 
+Add a function for a surname for each topic id in the collection

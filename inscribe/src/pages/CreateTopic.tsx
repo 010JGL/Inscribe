@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { AccountId, Client, PrivateKey, TopicId } from "@hashgraph/sdk";
-import { Button, TextField, Typography, Switch, FormControlLabel, Stack } from "@mui/material";
+import { Button, TextField, Typography, Switch, FormControlLabel, Stack, Card, CardContent } from "@mui/material";
 import SendIcon from '@mui/icons-material/Send';
 import WordInputBox from '../components/WordInputBox';
 import { handleWordSubmit } from '../utils/handleWordSubmit';  // Import the function
 import { initializeClient } from '../utils/initializeClient';  // Import the function
 import { useWalletInterface } from '../services/wallets/useWalletInterface';  // Import the hook
-
 
 export default function CreateTopic() {
   const { walletInterface } = useWalletInterface();  // Correctly using the hook
@@ -57,7 +56,7 @@ export default function CreateTopic() {
 
   return (
     <Stack alignItems="center" spacing={6}>
-      <Typography variant="h3" color="white">
+      <Typography variant="h3" color="orange">
         Store your wisdom on the hashgraph
       </Typography>
       {error && <Typography color="red">{error}</Typography>}
@@ -126,58 +125,56 @@ export default function CreateTopic() {
       
       <Stack spacing={2} alignItems="center">
         {topics.map((topic, index) => (
-          <Stack key={index} spacing={1} alignItems="flex-start" sx={{ maxWidth: '600px', overflowWrap: 'break-word' }}>
-<Typography color="white">
-  <Typography component="span" color="primary" fontWeight="bold">
-    Topic ID:
-  </Typography> 
-  {' '}{topic.topicId.toString()} <br />
-  
-  <Typography component="span" color="primary" fontWeight="bold">
-    Message:
-  </Typography> 
-  {' '}{topic.message} <br />
-  
-  <Typography component="span" color="primary" fontWeight="bold">
-    Private:
-  </Typography> 
-  {' '}{topic.isPrivate ? "Yes" : "No"} <br />
-  
-  {topic.isPrivate && (
-
-<Stack
-  direction="column"
-  alignItems="flex-start"  // Align items to the start of the vertical axis
-  spacing={1}  // Adjust spacing between items if needed
->
-  <Typography component="span" color="primary" fontWeight="bold">
-    Submit Key:
-  </Typography>
-  <TextField
-    value={topic.submitKey || ''}
-    variant="outlined"
-    multiline
-    rows={3}
-    InputProps={{ readOnly: true }}
-    sx={{ maxWidth: '100%' }}
-  />
-  <Button
-    variant="contained"
-    onClick={handleCopySubmitKey}
-  >
-    Copy Submit Key
-  </Button>
-</Stack>
-
-  )}
-</Typography>
-
-          </Stack>
+          <Card key={index} sx={{ maxWidth: '600px', width: '100%', backgroundColor: '#3b3b3b' }}>
+            <CardContent>
+              <Stack spacing={1} alignItems="flex-start" sx={{ overflowWrap: 'break-word' }}>
+                <Typography color="white">
+                  <Typography component="span" color="primary" fontWeight="bold">
+                    Topic ID:
+                  </Typography> 
+                  {' '}{topic.topicId.toString()} <br />
+                  
+                  <Typography component="span" color="primary" fontWeight="bold">
+                    Message:
+                  </Typography> 
+                  {' '}{topic.message} <br />
+                  
+                  <Typography component="span" color="primary" fontWeight="bold">
+                    Private:
+                  </Typography> 
+                  {' '}{topic.isPrivate ? "Yes" : "No"} <br />
+                  
+                  {topic.isPrivate && (
+                    <Stack
+                      direction="column"
+                      alignItems="flex-start"
+                      spacing={1}
+                    >
+                      <Typography component="span" color="primary" fontWeight="bold">
+                        Submit Key:
+                      </Typography>
+                      <TextField
+                        value={topic.submitKey || ''}
+                        variant="outlined"
+                        multiline
+                        rows={3}
+                        InputProps={{ readOnly: true }}
+                        sx={{ maxWidth: '100%' }}
+                      />
+                      <Button
+                        variant="contained"
+                        onClick={handleCopySubmitKey}
+                      >
+                        Copy Submit Key
+                      </Button>
+                    </Stack>
+                  )}
+                </Typography>
+              </Stack>
+            </CardContent>
+          </Card>
         ))}
       </Stack>
     </Stack>
   );
 }
-
-
-
