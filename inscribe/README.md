@@ -75,3 +75,14 @@ Hackathon project 2024 Hello Future
 - Make a tool for businesses to use for non-tech people
 
 - Increase awareness and the number of transactions on the network
+
+
+
+
+# # # To do list
+
+- Fix the main net functionality
+
+- Login feature for CC users
+
+- CC payment
