@@ -81,8 +81,10 @@ Hackathon project 2024 Hello Future
 
 # # # To do list
 
-- Fix the main net functionality
+- Add Main net functionality
 
-- Login feature for CC users
+- Add logic so the credits are applied to the account once the user pays with CC
 
-- CC payment
+- add user messages for feedback
+
+- add testing 

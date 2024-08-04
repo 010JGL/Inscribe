@@ -103,10 +103,18 @@ export default function NavBar() {
               {accountId ? `Connected: ${accountId}` : 'Connect Wallet'}
             </Button>
           </Grid>
+          <Grid item>
+            <Button
+              component={Link}
+              to="/login"
+              variant='outlined'
+            >
+              Login
+            </Button>
+          </Grid>
         </Grid>
       </Toolbar>
       <WalletSelectionDialog open={open} setOpen={setOpen} onClose={() => setOpen(false)} />
     </AppBar>
   );
 }
-

@@ -11,6 +11,7 @@ import SearchTopic from "./pages/SearchTopic"
 import Collection from "./pages/Collection"
 import Contact from "./pages/Contact"
 import SaveTweet from './pages/SaveTweet'
+import LoginSignUp from './components/LoginSignUp';
 
 export default function AppRouter() {
   return (
@@ -23,6 +24,7 @@ export default function AppRouter() {
         <Route path="/collection" element={<Collection />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/save-tweet" element={<SaveTweet />} />
+        <Route path="/login" element={<LoginSignUp />} />
       </Routes>
   )
 }
