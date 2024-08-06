@@ -1,15 +1,17 @@
-import { AppBar, Button, Toolbar, Typography, Grid, Menu, MenuItem, IconButton } from '@mui/material';
-import { useEffect, useState, MouseEvent } from 'react'; // Import MouseEvent
+import { AppBar, Button, Toolbar, Typography, Grid, Menu, MenuItem, IconButton, Box } from '@mui/material';
+import { useEffect, useState, MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import HBARLogo from "../assets/hbar-logo.svg";
 import { useWalletInterface } from '../services/wallets/useWalletInterface';
 import { WalletSelectionDialog } from './WalletSelectionDialog';
-import MenuIcon from '@mui/icons-material/Menu'; // Import menu icon
+import MenuIcon from '@mui/icons-material/Menu';
+import { useUserContext } from '../contexts/UserContext';
 
 export default function NavBar() {
   const [open, setOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null); // Specify the type for anchorEl
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const { accountId, walletInterface } = useWalletInterface();
+  const { user, setUser } = useUserContext();
 
   const handleConnect = async () => {
     if (accountId) {
@@ -19,12 +21,17 @@ export default function NavBar() {
     }
   };
 
-  const handleMenuClick = (event: MouseEvent<HTMLElement>) => { // Specify the type for the event parameter
+  const handleMenuClick = (event: MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
 
   const handleMenuClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    setUser({ email: '', credits: 0 });
+    localStorage.removeItem('credits');
   };
 
   useEffect(() => {
@@ -51,7 +58,7 @@ export default function NavBar() {
           <Grid item>
             <Grid container spacing={2} justifyContent="center" alignItems="center">
               <Grid item sx={{ display: 'flex', flexDirection: 'row', marginRight: '60px' }}>
-                <Typography variant="h6" color="orange" pr={1}>Inscribe</Typography>
+                <Typography variant="h5" color="orange" pr={1}>Inscribe</Typography>
                 <IconButton
                   edge="end"
                   color="primary"
@@ -96,21 +103,37 @@ export default function NavBar() {
           </Grid>
 
           <Grid item>
-            <Button
-              variant='contained'
-              onClick={handleConnect}
-            >
-              {accountId ? `Connected: ${accountId}` : 'Connect Wallet'}
-            </Button>
-          
-            <Button
-              component={Link}
-              to="/login"
-              variant='outlined'
-              sx= {{ marginLeft: "20px" }}
-            >
-              Login
-            </Button>
+            <Box display="flex" alignItems="center">
+              {user.email && (
+                <Typography variant="h6" color="white" pr={2}>
+                  Credits: {user.credits}
+                </Typography>
+              )}
+              <Button
+                variant='contained'
+                onClick={handleConnect}
+              >
+                {accountId ? `Connected: ${accountId}` : 'Connect Wallet'}
+              </Button>
+              {user.email ? (
+                <Button
+                  variant='outlined'
+                  sx={{ marginLeft: "20px" }}
+                  onClick={handleLogout}
+                >
+                  Logout
+                </Button>
+              ) : (
+                <Button
+                  component={Link}
+                  to="/login"
+                  variant='outlined'
+                  sx={{ marginLeft: "20px" }}
+                >
+                  Login
+                </Button>
+              )}
+            </Box>
           </Grid>
         </Grid>
       </Toolbar>

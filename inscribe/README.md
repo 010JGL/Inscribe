@@ -90,4 +90,6 @@ Hackathon project 2024 Hello Future
 - add testing 
 
 - Collection page: 
-Add a function for a surname for each topic id in the collection
+Add a function for a surname for each topic id in the collection.
+
+Change the functionality for the collection, need to link it with account.

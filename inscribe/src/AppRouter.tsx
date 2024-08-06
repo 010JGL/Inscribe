@@ -12,6 +12,8 @@ import Collection from "./pages/Collection"
 import Contact from "./pages/Contact"
 import SaveTweet from './pages/SaveTweet'
 import LoginSignUp from './components/LoginSignUp';
+import Information from './pages/Information';
+import BuiltOn from './pages/BuiltOn';
 
 export default function AppRouter() {
   return (
@@ -25,6 +27,8 @@ export default function AppRouter() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/save-tweet" element={<SaveTweet />} />
         <Route path="/login" element={<LoginSignUp />} />
+        <Route path="/information" element={<Information />} />
+        <Route path="/built-on" element={<BuiltOn />} />
       </Routes>
   )
 }

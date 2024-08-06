@@ -14,8 +14,21 @@ import {
   Snackbar
 } from '@mui/material';
 import StripeCheckoutForm from './StripeCheckoutForm';
+import { useNavigate } from 'react-router-dom';
+import { useUserContext } from '../contexts/UserContext';
+
+// Define the User type without password
+interface User {
+  email: string;
+  credits: number;
+}
+
+interface StoredUser extends User {
+  password: string;
+}
 
 export default function LoginSignUp() {
+  const { setUser } = useUserContext();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,6 +36,7 @@ export default function LoginSignUp() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [showSnackbar, setShowSnackbar] = useState(false);
   const [openStripeModal, setOpenStripeModal] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const storedCredits = localStorage.getItem('credits');
@@ -44,15 +58,15 @@ export default function LoginSignUp() {
   };
 
   const handleSignUp = () => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const existingUser = users.find((user: any) => user.email === email);
+    const users: StoredUser[] = JSON.parse(localStorage.getItem('users') || '[]');
+    const existingUser = users.find((user: StoredUser) => user.email === email);
 
     if (existingUser) {
       alert('User already exists');
       return;
     }
 
-    const newUser = { email, password, credits: 0 };
+    const newUser: StoredUser = { email, password, credits: 0 };
     users.push(newUser);
     localStorage.setItem('users', JSON.stringify(users));
     localStorage.setItem('credits', '0');
@@ -61,8 +75,8 @@ export default function LoginSignUp() {
   };
 
   const handleLogin = () => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find((user: any) => user.email === email && user.password === password);
+    const users: StoredUser[] = JSON.parse(localStorage.getItem('users') || '[]');
+    const user = users.find((user: StoredUser) => user.email === email && user.password === password);
 
     if (!user) {
       console.log('Invalid email or password');
@@ -74,18 +88,20 @@ export default function LoginSignUp() {
     setCredits(user.credits);
     setLoggedIn(true);
     setShowSnackbar(true);
+    setUser({ email, credits: user.credits });
     console.log('Login successful');
+    navigate('/');
   };
 
   const handleToken = (token: any) => {
     console.log('Stripe Token:', token);
-    addCredits(10); // Simulate adding 10 credits
+    addCredits(10);
     setOpenStripeModal(false);
   };
 
   const addCredits = (amount: number) => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const userIndex = users.findIndex((user: any) => user.email === email);
+    const users: StoredUser[] = JSON.parse(localStorage.getItem('users') || '[]');
+    const userIndex = users.findIndex((user: StoredUser) => user.email === email);
 
     if (userIndex === -1) {
       alert('User not found');
@@ -98,6 +114,7 @@ export default function LoginSignUp() {
     setCredits(users[userIndex].credits);
     alert(`${amount} credits added`);
     console.log(`${amount} credits added`);
+    setUser((prevUser: User) => ({ ...prevUser, credits: users[userIndex].credits }));
   };
 
   return (
@@ -143,7 +160,7 @@ export default function LoginSignUp() {
         </Grid>
         {loggedIn && (
           <>
-            <Grid item xs={12} sx= {{ marginTop: '40px' }}>
+            <Grid item xs={12} sx={{ marginTop: '40px' }}>
               <Typography variant="h6">Credits: {credits}</Typography>
             </Grid>
             <Grid item xs={12}>

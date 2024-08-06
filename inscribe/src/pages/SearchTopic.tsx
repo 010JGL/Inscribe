@@ -6,7 +6,7 @@ import {
   Stack,
   Card,
   CardContent,
-  Pagination
+  Pagination,
 } from "@mui/material";
 import { Client, TopicInfoQuery, TopicId, StatusError } from "@hashgraph/sdk";
 import axios from "axios";
@@ -24,16 +24,18 @@ interface TopicInfo {
 }
 
 interface PDFData {
-  pages: Array<Array<{
-    text: string;
-    x: number;
-    y: number;
-    fontSize: number;
-    fontWeight: string;
-    textAlign: string;
-    isCapitalized: boolean;
-    isPunctuation: boolean;
-  }>>;
+  pages: Array<
+    Array<{
+      text: string;
+      x: number;
+      y: number;
+      fontSize: number;
+      fontWeight: string;
+      textAlign: string;
+      isCapitalized: boolean;
+      isPunctuation: boolean;
+    }>
+  >;
 }
 
 interface TweetData {
@@ -67,34 +69,42 @@ const SearchTopic = () => {
     }
   };
 
-  const fetchAndDisplayTweets = (tweetDataArray: Array<{ tweetData: TweetData; hcsTimestamp: string }>) => {
+  const fetchAndDisplayTweets = (
+    tweetDataArray: Array<{ tweetData: TweetData; hcsTimestamp: string }>
+  ) => {
     return tweetDataArray.map((data, index) => {
       const { tweetData, hcsTimestamp } = data;
       const correctTimestamp = tweetData.timestamp
-        ? tweetData.timestamp.replace('Â·', '·')
-        : 'No timestamp available';
-  
+        ? tweetData.timestamp.replace("Â·", "·")
+        : "No timestamp available";
+
       // Remove redundant information from the content
       const cleanedContent = tweetData.content
         .replace(`${tweetData.name}\n${tweetData.username}\n`, "")
         .replace(`\n${correctTimestamp}`, "")
         .trim();
-  
+
       return (
-        <Card key={index} sx={{ padding: 2, marginTop: 2, position: 'relative' }}>
+        <Card
+          key={index}
+          sx={{ padding: 2, marginTop: 2, position: "relative" }}
+        >
           <Typography variant="h6" sx={{ marginBottom: 1 }}>
             {tweetData.name}
           </Typography>
           <Typography variant="subtitle1" sx={{ marginBottom: 2 }}>
             {tweetData.username}
           </Typography>
-          <Typography variant="body1" sx={{ whiteSpace: "pre-wrap", marginBottom: 2 }}>
+          <Typography
+            variant="body1"
+            sx={{ marginBottom: 2, whiteSpace: "pre-wrap" }}
+          >
             {cleanedContent}
           </Typography>
-          <Typography 
-            variant="body2" 
+          <Typography
+            variant="body2"
             color="textSecondary"
-            sx={{ position: 'absolute', bottom: 8, right: 16 }}
+            sx={{ position: "absolute", bottom: 8, right: 16 }}
           >
             {formatConsensusTimestamp(hcsTimestamp)}
           </Typography>
@@ -108,33 +118,46 @@ const SearchTopic = () => {
       setError("Please enter a valid topic ID.");
       return;
     }
-  
+
     try {
       const clientTestnet = Client.forTestnet();
       const { REACT_APP_MY_ACCOUNT_ID, REACT_APP_MY_PRIVATE_KEY } = process.env;
       if (!REACT_APP_MY_ACCOUNT_ID || !REACT_APP_MY_PRIVATE_KEY) {
-        throw new Error("Environment variables for account ID and private key are not set.");
+        throw new Error(
+          "Environment variables for account ID and private key are not set."
+        );
       }
-  
-      clientTestnet.setOperator(REACT_APP_MY_ACCOUNT_ID, REACT_APP_MY_PRIVATE_KEY);
-  
+
+      clientTestnet.setOperator(
+        REACT_APP_MY_ACCOUNT_ID,
+        REACT_APP_MY_PRIVATE_KEY
+      );
+
       const topicIdObj = TopicId.fromString(topicId);
-      const info = await new TopicInfoQuery().setTopicId(topicIdObj).execute(clientTestnet);
+      const info = await new TopicInfoQuery()
+        .setTopicId(topicIdObj)
+        .execute(clientTestnet);
       console.log("Topic info retrieved:", info);
-  
+
       const messages = await fetchMessages(topicId);
       console.log("Messages retrieved:", messages);
-  
+
       let pdfData: PDFData | undefined = { pages: [] }; // Default to empty pages
-      let tweetDataArray: Array<{ tweetData: TweetData; hcsTimestamp: string }> = [];
-  
+      let tweetDataArray: Array<{
+        tweetData: TweetData;
+        hcsTimestamp: string;
+      }> = [];
+
       for (const msg of messages) {
         try {
           const parsedMessage = JSON.parse(msg.message);
           console.log("Parsed message:", parsedMessage);
-  
+
           if (parsedMessage.tweetData) {
-            tweetDataArray.push({ tweetData: parsedMessage.tweetData as TweetData, hcsTimestamp: msg.consensusTimestamp });
+            tweetDataArray.push({
+              tweetData: parsedMessage.tweetData as TweetData,
+              hcsTimestamp: msg.consensusTimestamp,
+            });
           } else if (parsedMessage.instructions) {
             pdfData = parsedMessage.instructions as PDFData;
           }
@@ -143,20 +166,25 @@ const SearchTopic = () => {
           // Continue to check the next message
         }
       }
-  
+
       console.log("Final PDF data:", pdfData); // Debugging line to verify PDF data
-  
+
       setTopicInfo({
         topicId: topicIdObj.toString(),
         messages,
         pdfData: pdfData.pages.length > 0 ? pdfData : undefined, // Set PDF data if pages exist
-        tweetData: tweetDataArray.length > 0 ? tweetDataArray : undefined // Set tweet data if found
+        tweetData: tweetDataArray.length > 0 ? tweetDataArray : undefined, // Set tweet data if found
       });
       setError(null);
     } catch (error: unknown) {
       if (error instanceof Error) {
-        if (error instanceof StatusError && error.status.toString() === "INVALID_TOPIC_ID") {
-          setError("Invalid Topic ID. Please ensure the topic ID is correct and exists on the network.");
+        if (
+          error instanceof StatusError &&
+          error.status.toString() === "INVALID_TOPIC_ID"
+        ) {
+          setError(
+            "Invalid Topic ID. Please ensure the topic ID is correct and exists on the network."
+          );
         } else {
           setError("Failed to fetch topic info. Please try again.");
         }
@@ -179,13 +207,13 @@ const SearchTopic = () => {
         key={pageIndex}
         style={{
           position: "relative",
-          border: '1px solid #ddd',
-          padding: '10px',
-          boxSizing: 'border-box',
-          width: '8.5in',  // Standard Letter size width
-          height: '11in',  // Standard Letter size height
-          overflow: 'hidden',
-          backgroundColor: '#fff',  // Ensure a white background for better contrast
+          border: "1px solid #ddd",
+          padding: "10px",
+          boxSizing: "border-box",
+          width: "8.5in", // Standard Letter size width
+          height: "11in", // Standard Letter size height
+          overflow: "hidden",
+          backgroundColor: "#fff", // Ensure a white background for better contrast
         }}
       >
         {page.map((item, itemIndex) => (
@@ -196,14 +224,14 @@ const SearchTopic = () => {
               left: `${item.x}px`,
               top: `${11 * 96 - item.y - item.fontSize}px`, // Adjust positioning for PDF layout
               fontSize: `${item.fontSize}px`,
-              fontWeight: item.fontWeight === 'bold' ? 'bold' : 'normal',
+              fontWeight: item.fontWeight === "bold" ? "bold" : "normal",
               textAlign: item.textAlign as "left" | "center" | "right",
               whiteSpace: "pre-wrap",
               overflowWrap: "break-word",
-              textTransform: item.isCapitalized ? 'capitalize' : 'none',
-              textDecoration: 'none', // Remove underline
-              color: '#000', // Text color set to black
-              zIndex: 1,  // Ensure text appears above the background
+              textTransform: item.isCapitalized ? "capitalize" : "none",
+              textDecoration: "none", // Remove underline
+              color: "#000", // Text color set to black
+              zIndex: 1, // Ensure text appears above the background
             }}
           >
             {item.text}
@@ -218,7 +246,10 @@ const SearchTopic = () => {
     return new Date(milliseconds).toLocaleString(); // Adjust this based on your locale and format preferences
   };
 
-  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+  const handlePageChange = (
+    event: React.ChangeEvent<unknown>,
+    value: number
+  ) => {
     setPage(value);
   };
 
@@ -233,12 +264,19 @@ const SearchTopic = () => {
     return (
       <>
         {messagesToDisplay.map((msg) => (
-          <Card key={msg.sequenceNumber} style={{ margin: '10px 0' }}>
+          <Card key={msg.sequenceNumber} style={{ margin: "10px 0" }}>
             <CardContent>
-              <Typography variant="h6">Topic ID: {topicInfo.topicId}</Typography>
+              <Typography variant="h6">
+                Topic ID: {topicInfo.topicId}
+              </Typography>
               <Typography variant="body1">Message: {msg.message}</Typography>
-              <Typography variant="body2" color="textSecondary" style={{ textAlign: 'right' }}>
-                Consensus Timestamp: {formatConsensusTimestamp(msg.consensusTimestamp)}
+              <Typography
+                variant="body2"
+                color="textSecondary"
+                style={{ textAlign: "right" }}
+              >
+                Consensus Timestamp:{" "}
+                {formatConsensusTimestamp(msg.consensusTimestamp)}
               </Typography>
             </CardContent>
           </Card>
@@ -247,7 +285,11 @@ const SearchTopic = () => {
           count={Math.ceil(messages.length / messagesPerPage)}
           page={page}
           onChange={handlePageChange}
-          style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            marginTop: "10px",
+          }}
         />
       </>
     );
@@ -255,39 +297,37 @@ const SearchTopic = () => {
 
   return (
     <Stack alignItems="center" spacing={6}>
-    
-      <Typography variant="h3" style={{ margin: '20 0', color: 'orange' }}>Search Topic</Typography>
-      <Stack direction="row" spacing={2} style={{ marginBottom: '20px' }}>
+      <Typography variant="h3" style={{ margin: "20 0", color: "orange" }}>
+        Search Topic
+      </Typography>
+      <Stack direction="row" spacing={2} style={{ marginBottom: "20px" }}>
         <TextField
           label="Topic ID"
           variant="outlined"
           value={topicId}
           onChange={(e) => setTopicId(e.target.value)}
         />
-        <Button variant="contained" onClick={handleFetchInfo}>Fetch Topic</Button>
+        <Button variant="contained" onClick={handleFetchInfo}>
+          Fetch Topic
+        </Button>
       </Stack>
-      {error && <Typography color="error">{error}</Typography>}
+      {error && (
+        <Card sx={{ backgroundColor: "#333", padding: 2, maxWidth: '400px' }}>
+          <Typography color="error" variant="body1" sx={{ color: "#fff" }}>
+            {error}
+          </Typography>
+        </Card>
+      )}
       {topicInfo && (
         <>
-          {topicInfo.tweetData ? fetchAndDisplayTweets(topicInfo.tweetData) : renderMessages()}
+          {topicInfo.tweetData
+            ? fetchAndDisplayTweets(topicInfo.tweetData)
+            : renderMessages()}
           {topicInfo.pdfData && renderPDFData()}
         </>
       )}
-    
     </Stack>
   );
-};
+}  
 
 export default SearchTopic;
-
-
-
-
-
-
-
-
-
-
-
-

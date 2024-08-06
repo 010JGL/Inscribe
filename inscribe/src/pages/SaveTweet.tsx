@@ -44,10 +44,7 @@ export default function SaveTweet() {
 
   const createMessage = () => {
     const tweetData = {
-      name: "Leemon Baird",
-      username: "@leemonbaird",
       content: message, // Use the current state of message
-      timestamp: "8:59 PM · Nov 18, 2022" // This should also be dynamically set if needed
     };
 
     const displayInstructions = {
@@ -60,10 +57,7 @@ export default function SaveTweet() {
 
     return JSON.stringify({ 
       tweetData: {
-        name: tweetData.name,
-        username: tweetData.username,
         content: tweetData.content,
-        timestamp: tweetData.timestamp
       }, 
       displayInstructions 
     });
@@ -172,7 +166,7 @@ export default function SaveTweet() {
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         multiline
-        rows={5}
+        rows={8}
         sx={{ backgroundColor: 'black', color: 'white', mb: 2 }}
       />
       {isCreatingNew ? (
@@ -217,5 +211,4 @@ export default function SaveTweet() {
     </Stack>
   );
 }
-
 
