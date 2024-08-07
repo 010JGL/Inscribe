@@ -25,6 +25,9 @@ export default function Home() {
       >
         Inscribe
       </Typography>
+      <Stack gap={4}/>
+      <Typography variant="h4" sx={{ textAlign: 'center' }}>A basic set of tools to interac with Hedera Concensus Service</Typography>
+      
       {walletInterface !== null && (
         <>
           <Stack
