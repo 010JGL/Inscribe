@@ -1,17 +1,75 @@
-import React, { useState, useCallback, useEffect } from "react";
-import { Typography, Button, Box, CircularProgress, LinearProgress, Container } from "@mui/material";
-import { useDropzone } from "react-dropzone";
-import * as pdfjsLib from "pdfjs-dist";
-import { Client, PrivateKey, TopicId } from "@hashgraph/sdk";
+import React, { useState, useCallback, useEffect } from 'react';
+import { Typography, Button, CircularProgress, Container } from '@mui/material';
+import { useDropzone } from 'react-dropzone';
+import * as pdfjsLib from 'pdfjs-dist';
+import { AccountId, Client, PrivateKey, TopicCreateTransaction, TopicMessageSubmitTransaction, TopicId } from "@hashgraph/sdk";
+import SendIcon from '@mui/icons-material/Send';
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
-import { handleCreateTopic } from "../components/HandleCreateTopic";
-import { initializeClient, splitMessagesIntoChunks, sleep, submitMessageWithRetries } from "../utils/hederaUtils";
-import Dropzone from "../components/Dropzone";
-import LoadingButton from "../components/LoadingButton";
 
 // Ensure the worker is set up correctly
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+const initializeClient = (walletInterface: any) => {
+  const client = walletInterface
+    ? Client.forNetwork(walletInterface.network).setOperator(walletInterface.accountId, walletInterface.privateKey)
+    : Client.forTestnet().setOperator(
+        AccountId.fromString(process.env.REACT_APP_MY_ACCOUNT_ID || ""),
+        PrivateKey.fromString(process.env.REACT_APP_MY_PRIVATE_KEY || "")
+      );
+  return client;
+};
+
+const splitMessagesIntoChunks = (message: string, maxChunkSize: number = 1000) => {
+  const chunks = [];
+  for (let i = 0; i < message.length; i += maxChunkSize) {
+    chunks.push(message.slice(i, i + maxChunkSize));
+  }
+  return chunks;
+};
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const submitMessageToHedera = async (message: string, topicId: TopicId, client: Client, submitKey?: PrivateKey) => {
+  try {
+    const tx = new TopicMessageSubmitTransaction().setTopicId(topicId).setMessage(message);
+    
+    // Ensure the transaction is frozen before signing or execution
+    await tx.freezeWith(client);
+
+    if (submitKey) {
+      await tx.sign(submitKey);
+    }
+
+    const txResponse = await tx.execute(client);
+    const receipt = await txResponse.getReceipt(client);
+
+    if (receipt.status.toString() !== 'SUCCESS') {
+      throw new Error(`Failed to submit message: ${receipt.status.toString()}`);
+    }
+  } catch (error) {
+    console.error('Error in submitMessageToHedera:', error as Error);
+    throw error;
+  }
+};
+
+const submitMessageWithRetries = async (message: string, topicId: TopicId, client: Client, submitKey?: PrivateKey, maxRetries: number = 10) => {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      await submitMessageToHedera(message, topicId, client, submitKey);
+      return;
+    } catch (error) {
+      if ((error as Error).message.includes('429')) {
+        console.warn('Rate limit hit, retrying in', 1050 * Math.pow(2, attempt), 'ms');
+        await sleep(1050 * Math.pow(2, attempt)); // Exponential backoff
+      } else {
+        console.error('Unexpected error:', error);
+        break;
+      }
+    }
+  }
+  console.error('Max retries reached, failed to submit message');
+};
+
 
 const UploadPDF = () => {
   const { walletInterface } = useWalletInterface();
@@ -22,20 +80,19 @@ const UploadPDF = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [client, setClient] = useState<Client | null>(null);
   const [isPrivate, setIsPrivate] = useState(false);
-  const [pdfContent, setPdfContent] = useState<{ text: string; instructions: any } | null>(null);
+  const [pdfText, setPdfText] = useState<string | null>(null);
   const [showTopicSwitch, setShowTopicSwitch] = useState(false);
   const [uploadingMessages, setUploadingMessages] = useState(false);
-  const [topics, setTopics] = useState<
-    { topicId: TopicId; message: string; submitKey?: PrivateKey }[]
-  >([]);
+  const [topics, setTopics] = useState<{ topicId: TopicId; message: string; submitKey?: PrivateKey }[]>([]);
   const [lastCreatedTopicId, setLastCreatedTopicId] = useState<TopicId | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   useEffect(() => {
-    if (process.env.REACT_APP_MY_ACCOUNT_ID && process.env.REACT_APP_MY_PRIVATE_KEY) {
-      setClient(initializeClient(walletInterface));
-    } else {
+    if (!process.env.REACT_APP_MY_ACCOUNT_ID || !process.env.REACT_APP_MY_PRIVATE_KEY) {
       setError("Environment variables for Hedera account ID or private key are missing.");
+      return;
     }
+    setClient(initializeClient(walletInterface));
   }, [walletInterface]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -43,162 +100,224 @@ const UploadPDF = () => {
     setError(null);
     setSuccess(null);
     setProgress(0);
+    setUploadProgress(0);
     setShowTopicSwitch(false);
   }, []);
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
-    accept: { "application/pdf": [] },
+    accept: { 'application/pdf': [] },
     maxFiles: 1,
   });
 
   const handleUpload = async () => {
-    if (!file) return setError("No file selected");
+    if (!file) {
+      setError("No file selected");
+      return;
+    }
 
     setLoading(true);
     setError(null);
     setSuccess(null);
+    setProgress(0);
 
     try {
-      const pdfData = new Uint8Array(await file.arrayBuffer());
-      const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
-      const numPages = pdf.numPages;
-      const content: { text: string; instructions: any } = { text: "", instructions: { pages: [] } };
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const pdfData = new Uint8Array(reader.result as ArrayBuffer);
+          const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+          const numPages = pdf.numPages;
 
-      for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-        const page = await pdf.getPage(pageNum);
-        const textContent = await page.getTextContent();
+          let extractedText = '';
 
-        const pageInstructions: any[] = [];
+          for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items
+              .filter((item: any) => typeof item === 'object' && 'str' in item)
+              .map((item: any) => item.str)
+              .join(' ');
+            extractedText += pageText + '\n';
 
-        textContent.items.forEach((item: any) => {
-          if (typeof item === "object" && "str" in item) {
-            const [fontSize, fontWeight, textAlign] = [item.transform[0], item.fontName.includes('Bold') ? 'bold' : 'normal', determineTextAlignment(item.transform)];
-
-            pageInstructions.push({
-              text: item.str,
-              x: item.transform[4],
-              y: item.transform[5],
-              fontSize,
-              fontWeight,
-              textAlign,
-              isCapitalized: item.str === item.str.toUpperCase(),
-              isPunctuation: /[.,?!;:]/.test(item.str)
-            });
+            setProgress(Math.min((pageNum / numPages) * 100, 100));
           }
-        });
 
-        content.text += `\n\nPage ${pageNum}\n`;
-        content.instructions.pages.push(pageInstructions);
-      }
+          setPdfText(extractedText);
+          setSuccess('File processed successfully');
+          setShowTopicSwitch(true);
+        } catch (error) {
+          console.error('Error processing PDF:', error as Error);
+          setError('Error processing PDF');
+        }
+      };
 
-      setPdfContent(content);
-      setSuccess("File processed successfully");
-      setShowTopicSwitch(true);
+      reader.onerror = (error) => {
+        console.error('File reading error:', error as unknown as Error);
+        setError('Error reading file');
+      };
+
+      reader.readAsArrayBuffer(file);
     } catch (error) {
-      console.error("Error processing file:", error);
-      setError("Error processing file");
+      console.error('Unexpected error during file processing:', error as Error);
+      setError('Unexpected error during file processing');
     } finally {
       setLoading(false);
     }
   };
 
-  // Function to determine text alignment based on transform matrix
-  const determineTextAlignment = (transform: number[]) => {
-    const [a, b] = transform;
-    return (Math.abs(b) > 0.5) ? 'center' : 'left';
+  const handleCreateTopic = async () => {
+    if (!client) {
+      setError('Client is not initialized');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      let topicCreateTx = new TopicCreateTransaction();
+      let submitKey: PrivateKey | undefined;
+
+      if (isPrivate) {
+        submitKey = PrivateKey.generate();
+        topicCreateTx = topicCreateTx.setSubmitKey(submitKey.publicKey);
+        topicCreateTx = topicCreateTx.setAdminKey(submitKey);
+      }
+
+      const txResponse = await topicCreateTx.execute(client);
+      const receipt = await txResponse.getReceipt(client);
+      const topicId = receipt.topicId!;
+
+      setLastCreatedTopicId(topicId);
+
+      if (isPrivate && submitKey) {
+        setSuccess(`Private topic created successfully. Submit Key: ${submitKey.toString()}`);
+      } else {
+        setSuccess('Topic created successfully');
+      }
+
+      setTopics(prev => [
+        ...prev,
+        { topicId, message: pdfText || '', submitKey }
+      ]);
+    } catch (error) {
+      console.error('Error creating topic:', error as Error);
+      setError('Error creating topic');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     const uploadMessages = async () => {
-      if (pdfContent && client && !uploadingMessages) {
-        const messages = splitMessagesIntoChunks(JSON.stringify(pdfContent), 8000); // 100KB max chunk size
-        setUploadingMessages(true);
+      if (!pdfText || !client || uploadingMessages) return;
 
-        for (let i = 0; i < messages.length; i += 100) {
-          await Promise.all(
-            messages.slice(i, i + 100).map(async (message, index) => {
-              const topic = topics[i + index];
-              if (topic) {
-                await submitMessageWithRetries(message, topic.topicId, client, topic.submitKey);
-                setProgress(Math.min(100, ((i + index + 1) / messages.length) * 100));
-              } else {
-                console.error("Topic not found for message:", message);
-              }
-            })
-          );
-          await sleep(500); // Short pause to avoid rate limiting
+      setUploadingMessages(true);
+      setUploadProgress(0);
+      const messages = splitMessagesIntoChunks(pdfText);
+      console.log(`Total messages to upload: ${messages.length}`);
+
+      let messagesUploaded = 0;
+      let topicId = lastCreatedTopicId;
+
+      if (!topicId) {
+        setError('Failed to create topic');
+        setUploadingMessages(false);
+        return;
+      }
+
+      for (let i = 0; i < messages.length; i += 10) {
+        const batchMessages = messages.slice(i, i + 10);
+
+        for (const message of batchMessages) {
+          try {
+            await submitMessageWithRetries(message, topicId, client, isPrivate ? PrivateKey.fromString(process.env.REACT_APP_MY_PRIVATE_KEY || "") : undefined);
+            messagesUploaded++;
+            setUploadProgress(Math.min((messagesUploaded / messages.length) * 100, 100));
+          } catch (error) {
+            console.error('Error submitting message:', error as Error);
+            setError('Error submitting messages');
+            setUploadingMessages(false);
+            return;
+          }
         }
 
-        setUploadingMessages(false);
-        console.log("All messages uploaded successfully");
+        // Delay between batches
+        await sleep(500); // 0.5 seconds between batches
       }
+
+      setUploadingMessages(false);
+      setSuccess('Messages uploaded successfully');
     };
 
-    if (topics.length > 0 && pdfContent && client) {
+    if (pdfText && lastCreatedTopicId) {
       uploadMessages();
     }
-  }, [topics, pdfContent, client]);
-
-  const handleCreateTopicClick = () => {
-    handleCreateTopic(
-      client,
-      isPrivate,
-      JSON.stringify(pdfContent),
-      setTopics,
-      setLastCreatedTopicId,
-      setSuccess,
-      setError,
-      setLoading
-    );
-  };
+  }, [pdfText, client, lastCreatedTopicId, uploadingMessages, isPrivate]);
 
   return (
     <Container>
-      <Typography variant="h3" sx={{ color: 'orange', textAlign: "center" }}>Upload PDF</Typography>
-      <Dropzone onDrop={onDrop} />
-      <Box sx={{ textAlign: "center", marginBottom: "20px" }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '60vh',
+          
+        }}
+      >
+        <div {...getRootProps()} style={{ border: '2px dashed #fff', padding: '50px', borderRadius: '10px', cursor: 'pointer' }}>
+          <input {...getInputProps()} />
+          <Typography variant="h6" color="white">Drag and drop a PDF file here, or click to select one</Typography>
+        </div>
         {file && (
-          <LoadingButton
-            loading={loading}
-            onClick={handleUpload}
-          >
-            Upload PDF
-          </LoadingButton>
-        )}
-        {success && <Typography color="success" sx={{ marginBottom: '20px' }}>{success}</Typography>}
-        {error && <Typography color="error" sx={{ marginBottom: '20px' }}>{error}</Typography>}
-        {pdfContent && showTopicSwitch && (
-          <>
-            <Typography variant="h6" sx={{ marginBottom: '20px', color: 'orange' }}>Create Topic:</Typography>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleCreateTopicClick}
-              disabled={loading}
-              sx={{ marginBottom: '20px' }}
-            >
-              {loading ? <CircularProgress size={24} /> : "Create Topic"}
+          <div>
+            <Typography variant="h6" color="white" mt={2}>Selected file: {file.name}</Typography>
+            <Button onClick={handleUpload} variant="contained" color="primary" startIcon={<SendIcon />} style={{ marginTop: '16px' }}>
+              Upload and Scan PDF
             </Button>
-          </>
+          </div>
         )}
-        {uploadingMessages && <LinearProgress sx={{ width: '100%', marginTop: '20px' }} />}
-        {success && lastCreatedTopicId && (
-          <Box>
-            <Typography variant="h5" sx={{ marginTop: '20px', color: 'green' }}>
-              Topic created successfully!
-            </Typography>
-            <Typography variant="h6" sx={{ marginTop: '20px' }}>
-              ID: {lastCreatedTopicId.toString()}
-            </Typography>
-          </Box>
+        {loading && <CircularProgress style={{ marginTop: '16px' }} />}
+        {error && <Typography variant="body1" color="red" mt={2}>{error}</Typography>}
+        {success && <Typography variant="body1" color="green" mt={2}>{success}</Typography>}
+        {showTopicSwitch && !uploadingMessages && !lastCreatedTopicId && (
+          <Button onClick={handleCreateTopic} variant="contained" color="secondary" style={{ marginTop: '16px' }}>
+            Create Topic
+          </Button>
         )}
-      </Box>
+        {lastCreatedTopicId && (
+          <Typography variant="body1" color="white" mt={2}>Created Topic ID: {lastCreatedTopicId.toString()}</Typography>
+        )}
+        {uploadingMessages && (
+          <Typography variant="body1" color="white" mt={2}>
+            Uploading Messages: {Math.round(uploadProgress)}%
+          </Typography>
+        )}
+      </div>
     </Container>
   );
 };
 
 export default UploadPDF;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
