@@ -49,23 +49,13 @@ npm install react-router-dom
 
 ######
 
-
+Run with npm run start
 
 ### Inscribe ###
 
 React app with typescript using the hedera template for the wallet connection integration
 
 Hackathon project 2024 Hello Future
-
-### Objectives
-
-- Implement logic to write both open and private topics
-
-- Implement logic to write mesages to both open and private topic
-
-- Scale the idea for tweets
-
-- & larger files
 
 
 ### Goals ###
@@ -78,18 +68,9 @@ Hackathon project 2024 Hello Future
 
 
 
-
-# # # To do list
-
-- Add Main net functionality
-
-- Add logic so the credits are applied to the account once the user pays with CC
-
-- add user messages for feedback
+### To add
 
 - add testing 
 
 - Collection page: 
 Add a function for a surname for each topic id in the collection.
-
-Change the functionality for the collection, need to link it with account.
