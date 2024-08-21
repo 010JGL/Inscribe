@@ -51,6 +51,6 @@
     "gh-pages": "^6.1.1",
     "globals": "^15.8.0"
   },
-  "homepage": "https://010jgl.github.io/inscribe"
+  "homepage": "."
   
 }
